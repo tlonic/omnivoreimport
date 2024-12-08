@@ -16,10 +16,11 @@ from nanoid import generate
 
 # Main API client class for interacting with Omnivore's GraphQL API
 class OmnivoreAPI:
-    def __init__(self, api_url: str, api_key: str):
+    def __init__(self, api_url: str, api_key: str, verify_certs: bool = True):
         """Initialize API client with URL and authentication key"""
         self.api_url = api_url
         self.api_key = api_key
+        self.verify_certs = verify_certs;
 
     def gql_request(self, query: str, retry: bool = False) -> Dict:
         """
@@ -37,7 +38,8 @@ class OmnivoreAPI:
                 response = requests.post(
                     self.api_url,
                     headers=headers,
-                    data=query
+                    data=query,
+                    verify=self.verify_certs
                 )
                 data = response.json()
             except requests.exceptions.JSONDecodeError:
@@ -789,13 +791,15 @@ def parse_args():
                       help='Omnivore API endpoint (default: https://api-prod.omnivore.app/api/graphql)')
     parser.add_argument('--folder', required=True,
                       help='Path to folder containing contents of extracted archive')
+    parser.add_argument('--ignore-invalid-certs', action="store_true",
+                      help='Bypass validating TSL certificates during API calls')
     return parser.parse_args()
 
 if __name__ == "__main__":
     args = parse_args()
     
     try:
-        importer = OmnivoreAPI(args.api_url, args.api_key)
+        importer = OmnivoreAPI(args.api_url, args.api_key, not args.ignore_invalid_certs)
         import_folder(importer, args.folder)
     except Exception as e:
         print(f"Error: {str(e)}")
